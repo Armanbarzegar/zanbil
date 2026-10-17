@@ -1,0 +1,9 @@
+{
+  "name": "zanbil",
+  "version": "1.0.0",
+  "private": true,
+  "description": "فروشگاه زنبیل",
+  "scripts": {
+    "start": "node server/index.js"
+  }
+}
