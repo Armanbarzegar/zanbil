@@ -4376,6 +4376,75 @@
     setDrawerOpen(false);
     maybeShowInquiryPush();
   });
+  function bindScrollRail() {
+    const rail = document.getElementById("scrollRail");
+    const thumb = document.getElementById("scrollThumb");
+    if (!rail || !thumb) return;
+    let dragging = false;
+    let dragOffset = 0;
+
+    const metrics = () => {
+      const view = window.innerHeight;
+      const total = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+      const max = Math.max(1, total - view);
+      const pad = 18;
+      const track = Math.max(64, view - pad * 2);
+      const thumbH = Math.max(52, Math.min(track * 0.45, (view / total) * track));
+      return { view, total, max, pad, track, thumbH };
+    };
+
+    const paint = () => {
+      const m = metrics();
+      const y = window.scrollY || document.documentElement.scrollTop || 0;
+      const ratio = y / m.max;
+      const top = m.pad + ratio * (m.track - m.thumbH);
+      thumb.style.height = `${m.thumbH}px`;
+      thumb.style.transform = `translate3d(0, ${top}px, 0)`;
+      rail.classList.toggle("is-short", m.total <= m.view + 4);
+    };
+
+    const jumpTo = (clientY) => {
+      const m = metrics();
+      const rect = rail.getBoundingClientRect();
+      const y = clientY - rect.top - dragOffset - m.pad;
+      const span = Math.max(1, m.track - m.thumbH);
+      const ratio = Math.min(1, Math.max(0, y / span));
+      window.scrollTo(0, ratio * m.max);
+    };
+
+    window.addEventListener("scroll", paint, { passive: true });
+    window.addEventListener("resize", paint);
+    window.addEventListener("hashchange", () => setTimeout(paint, 80));
+    paint();
+    setTimeout(paint, 400);
+    setTimeout(paint, 1200);
+
+    thumb.addEventListener("pointerdown", (e) => {
+      dragging = true;
+      const rect = thumb.getBoundingClientRect();
+      dragOffset = e.clientY - rect.top;
+      rail.classList.add("is-dragging");
+      thumb.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    thumb.addEventListener("pointermove", (e) => {
+      if (dragging) jumpTo(e.clientY);
+    });
+    const endDrag = () => {
+      dragging = false;
+      rail.classList.remove("is-dragging");
+    };
+    thumb.addEventListener("pointerup", endDrag);
+    thumb.addEventListener("pointercancel", endDrag);
+    rail.addEventListener("pointerdown", (e) => {
+      if (e.target === thumb) return;
+      const m = metrics();
+      dragOffset = m.thumbH / 2;
+      jumpTo(e.clientY);
+    });
+  }
+
+  bindScrollRail();
   syncStoreShell();
   fillSiteDrawer();
   syncNetworkState();
